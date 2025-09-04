@@ -7,6 +7,7 @@ import {
   CandidateCreation,
   CandidateCreationError,
   ConversationHistory,
+  Feedbacks,
   GetAllCandidatesQuery,
   GetInterviewResponse,
   ICandidate,
@@ -42,7 +43,7 @@ export const useCandidate = (
     interviewDate: "",
     jobId: "",
     interviewId: "",
-    expirationDate:""
+    expirationDate: "",
   });
 
   const [error, errorSet] = React.useState<CandidateCreationError>({
@@ -51,13 +52,13 @@ export const useCandidate = (
     phoneNumber: "",
     interviewDate: "",
     jobId: "",
-    expirationDate:""
+    expirationDate: "",
   });
 
   // Expose setData function for external use (like populating form in edit mode)
   const setData = (newData: Partial<CandidateCreation>) => {
     dataSet((prev) => ({ ...prev, ...newData }));
-    console.log(newData)
+    console.log(newData);
   };
 
   const onChangeHandler = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -102,24 +103,23 @@ export const useCandidate = (
 
   // Create candidate function
   const onCreate = async () => {
-  try {
-    await candidate(dispatch, {
-      ...data,
-      interviewDate: data.interviewDate,
-      expirationDate: data.expirationDate
-    });
-    navigate(`/jobs`);
-  } catch (error) {
-  const err = error as AxiosError<any>;
-  const backendMessage =
-    err?.response?.data?.message ||
-    err?.response?.data?.error ||
-    err.message ||
-    "Failed to create candidate";
-  toast.error(backendMessage);
-
-}
-};
+    try {
+      await candidate(dispatch, {
+        ...data,
+        interviewDate: data.interviewDate,
+        expirationDate: data.expirationDate,
+      });
+      navigate(`/jobs`);
+    } catch (error) {
+      const err = error as AxiosError<any>;
+      const backendMessage =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        err.message ||
+        "Failed to create candidate";
+      toast.error(backendMessage);
+    }
+  };
 
   // Update candidate function (you'll need to implement the actual API call)
   const onUpdate = async () => {
@@ -128,7 +128,7 @@ export const useCandidate = (
       await updateCandidate(dispatch, candidateId!, {
         ...data,
         interviewDate: data.interviewDate,
-        expirationDate:data.expirationDate
+        expirationDate: data.expirationDate,
       });
       toast.success("Candidate updated successfully");
       navigate(`/jobs`);
@@ -215,12 +215,12 @@ export const useBulkCandidates = () => {
       const formData = new FormData();
       if (data.csvFile) {
         console.log("Appending file to FormData:", data.csvFile); // Debug: log file before append
-        formData.append('csvFile', data.csvFile);
+        formData.append("csvFile", data.csvFile);
       } else {
         console.warn("No file selected for upload.");
       }
       console.log("Appending jobId to FormData:", data.jobId); // Debug: log jobId
-      formData.append('jobId', data.jobId);
+      formData.append("jobId", data.jobId);
       console.log("Submitting FormData:", formData); // Debug: log FormData object
       await candidateBulk(dispatch, formData);
       toast.success("Bulk Candidates and interview created successfully");
@@ -320,6 +320,7 @@ export const ViewInterview = (interviewId: string, id: string) => {
     ConversationHistory[] | null
   >(null);
   const [candidateVideoUrl, setCandidateVideoUrl] = useState<string>("");
+  const [candidateFeedback, setCandidateFeedback] = useState<Feedbacks>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -331,6 +332,7 @@ export const ViewInterview = (interviewId: string, id: string) => {
       setCandidateEvaluation(response.data.candidateEvaluation);
       setConversationHistory(response.data.conversationHistory);
       setCandidateVideoUrl(response.data?.videoDetails?.videoUrl ?? "");
+      setCandidateFeedback(response.data?.feedbacks);
     } catch (err) {
       const errorMessage = "Failed to fetch Candidate details";
       setError(errorMessage);
@@ -350,6 +352,7 @@ export const ViewInterview = (interviewId: string, id: string) => {
     candidateEvaluation,
     conversationHistory,
     candidateVideoUrl,
+    candidateFeedback,
     loading,
     error,
     refetch: fetchInterviewEvaluation,

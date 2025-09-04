@@ -29,15 +29,14 @@ export type IJobCreation = {
   questionCategory: string;
 };
 
-
 export type IJobFetch = {
   id: string;
   adminId: string;
   status: string;
-  currentTemplate : InterviewTemplate
-}
+  currentTemplate: InterviewTemplate;
+};
 
-export type InterviewTemplate ={
+export type InterviewTemplate = {
   id: string;
   title: string;
   description: string;
@@ -48,7 +47,7 @@ export type InterviewTemplate ={
   pretestId?: string | null;
   version?: number;
   status?: string;
-}
+};
 
 export type JobCreationError = {
   title: ErrorWarning;
@@ -119,4 +118,27 @@ export interface GetJobResponse {
   data: {
     job: IJobCreation;
   };
+}
+
+export interface IJob {
+  id: string;
+  title: string;
+  description: string;
+  interviewMode: "AUTONOMOUS" | "GUIDED" | "MIXED" | "";
+  maxAiQuestions: number;
+  pretestId?: string;
+  assessmentId?: string;
+  interviewQuestions: InterviewQuestions[];
+}
+
+export interface JobCreations extends Omit<IJob, "id"> {
+  interviewQuestions: InterviewQuestions[];
+}
+
+export interface JobCreation2Error {
+  title: string;
+  description: string;
+  interviewQuestions: string;
+  interviewMode: string;
+  maxAiQuestions?: string;
 }

@@ -21,9 +21,12 @@ export const job = createSlice({
     setLoading: (state) => {
       state.loading = !state.loading;
     },
+    deleteJob: (state, action: PayloadAction<string>) => {
+      state.jobs = state.jobs.filter((job) => job.id === action.payload);
+    },
   },
 });
 
-export const { setJobs, setLoading } = job.actions;
+export const { setJobs, setLoading, deleteJob } = job.actions;
 
 export default job.reducer;

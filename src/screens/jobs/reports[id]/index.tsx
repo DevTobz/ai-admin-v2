@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { Skeleton } from "antd";
 import { ViewInterview } from "../../candidates/misc/useCandidate";
 import { useSearchParams } from "react-router-dom";
+import { title } from "process";
 
 const InterviewReports: React.FC = () => {
   // const { id } = useParams();
@@ -18,6 +19,7 @@ const InterviewReports: React.FC = () => {
     conversationHistory,
     error,
     candidateVideoUrl,
+    candidateFeedback,
   } = ViewInterview(interviewId, id);
 
   const accordionItems = [
@@ -38,7 +40,7 @@ const InterviewReports: React.FC = () => {
       id: "item2",
       title: "Transcript",
       content: (
-        <div>
+        <div className="h-[300px] overflow-scroll">
           {conversationHistory?.map((conversation, index) => (
             // Render your conversation data
             <div key={index} className="mb-5">
@@ -115,6 +117,22 @@ const InterviewReports: React.FC = () => {
               </ul>
             ))}
           </div>
+        </div>
+      ),
+    },
+    {
+      id: "item5",
+      title: "Review/Feedback",
+      content: (
+        <div>
+          <p>
+            <span className="font-bold">Rating:</span>{" "}
+            {candidateFeedback?.feedback?.ratings}
+          </p>
+          <p>
+            <span className="font-bold">Review: </span>{" "}
+            {candidateFeedback?.feedback?.review}
+          </p>
         </div>
       ),
     },

@@ -21,9 +21,14 @@ export const interview = createSlice({
     setLoading: (state) => {
       state.loading = !state.loading;
     },
+    deleteInterview: (state, action: PayloadAction<string>) => {
+      state.interviews = state.interviews.filter(
+        (interview) => interview.id === action.payload
+      );
+    },
   },
 });
 
-export const { setInterviews, setLoading } = interview.actions;
+export const { setInterviews, setLoading, deleteInterview } = interview.actions;
 
 export default interview.reducer;

@@ -9,6 +9,8 @@ import CandidateCreate from "../../screens/candidates/create";
 import Candidates from "../../screens/candidates/dashboard[id]";
 import CreateCandidateBulk from "../../screens/candidates/create-bulk";
 import CreateQuestions from "../../screens/jobs/create-questions";
+import EditJobForm from "../../screens/jobs/edit";
+// import { EditJobPage } from "../../screens/jobs/edit/EditJobPage";
 
 const AuthRoutes: React.FC = () => {
   return (
@@ -17,6 +19,7 @@ const AuthRoutes: React.FC = () => {
         <Route path="/" element={<Dashboard />} />
         <Route path="/create-job" element={<CreateJob />} />
         <Route path="/jobs" element={<JobsCreated />} />
+        <Route path="/edit-job/:id" element={<EditJobForm jobId={""} />} />
         <Route path="/reports" element={<InterviewReports />} />
         <Route path="/create-candidate" element={<CandidateCreate />} />
         <Route path="/edit-candidate" element={<CandidateCreate />} />

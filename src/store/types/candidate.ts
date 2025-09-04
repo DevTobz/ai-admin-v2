@@ -110,6 +110,7 @@ export interface GetInterviewResponse {
     candidateEvaluation: InterviewEvaluationReport;
     conversationHistory: ConversationHistory[];
     videoDetails?: VideoDetails;
+    feedbacks?: Feedbacks;
   };
 }
 
@@ -195,3 +196,10 @@ export type CandidateType = {
   expirationDate?: string;
   interviewDate?: string;
 };
+
+export interface Feedbacks {
+  feedback: {
+    ratings: number;
+    review: string;
+  };
+}

@@ -1,13 +1,16 @@
 import React, { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { Skeleton } from "antd";
+import { Modal, Skeleton } from "antd";
 import Table2 from "../../../components/Table";
 import { useCandidates } from "../misc/useCandidate";
 import { convertCandidatesToCandidatesType } from "../../../utility/candidateHelper";
 import { CandidateType } from "../../../store/types/candidate";
+import { delete_interview } from "../../../services/api/interview";
+import { useAppDispatch } from "../../../store/hooks";
+import DeleteConfirmModal from "../../../components/elements/DeleteConfirmModal";
 
 type User = {
-  id: number;
+  id: number | string;
   name: string;
   email: string;
   job: string;
@@ -91,6 +94,7 @@ const columns2: {
 ];
 
 const Candidates: React.FC = () => {
+  const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { id } = useParams();
   const jobId = id as string;
@@ -98,6 +102,10 @@ const Candidates: React.FC = () => {
   const interviewId = id as string;
   const [error, setError] = useState();
   // const { candidate } = ViewInterview(interviewId, candidateId);
+  const [deleteModal, setDeleteModal] = useState({
+    isOpen: false,
+    candidate: null as CandidateType | null,
+  });
 
   const { candidates, loading } = useCandidates({
     page: "1",
@@ -150,6 +158,30 @@ const Candidates: React.FC = () => {
     });
   };
 
+  const handleRowDelete = (row: CandidateType) => {
+    console.log("Delete button clicked for:", row);
+    setDeleteModal({
+      isOpen: true,
+      candidate: row,
+    });
+  };
+  // Confirm delete
+  const handleConfirmDelete = () => {
+    if (deleteModal.candidate) {
+      console.log("Confirmed delete for:", deleteModal.candidate);
+      delete_interview(dispatch, deleteModal.candidate.interviewId, navigate);
+
+      // Close modal
+      setDeleteModal({ isOpen: false, candidate: null });
+    }
+  };
+
+  // Cancel delete
+  const handleCancelDelete = () => {
+    console.log("Delete cancelled");
+    setDeleteModal({ isOpen: false, candidate: null });
+  };
+
   return (
     <div className="w-full py-5">
       <div className="max-w-[1096px] mx-auto px-3">
@@ -182,6 +214,7 @@ const Candidates: React.FC = () => {
             columns={columns2}
             onRowClick={handleRowClick}
             onEditClick={handleEditClick}
+            onDeleteClick={handleRowDelete}
           />
         ) : (
           <div className="text-center text-gray-500">
@@ -189,11 +222,12 @@ const Candidates: React.FC = () => {
           </div>
         )}
 
-        {/* <Table2<User>
-          data={data}
-          columns={columns2}
-          onRowClick={handleRowClick}
-        /> */}
+        <DeleteConfirmModal
+          candidate={deleteModal.candidate}
+          isOpen={deleteModal.isOpen}
+          onConfirm={handleConfirmDelete}
+          onCancel={handleCancelDelete}
+        />
       </div>
     </div>
   );

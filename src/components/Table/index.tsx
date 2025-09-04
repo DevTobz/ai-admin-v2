@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { FaEye, FaEdit } from "react-icons/fa";
+import { FaEye, FaEdit, FaTrashAlt } from "react-icons/fa";
 
 type Column<T> = {
   header: string;
@@ -12,7 +12,8 @@ type TableProps<T> = {
   columns: Column<T>[];
   rowsPerPage?: number;
   onRowClick?: (row: T) => void;
-  onEditClick?: (row:T) => void;
+  onEditClick?: (row: T) => void;
+  onDeleteClick?: (row: T) => void;
 };
 
 export default function Table2<T extends { id: string | number }>({
@@ -20,7 +21,8 @@ export default function Table2<T extends { id: string | number }>({
   columns,
   rowsPerPage = 10,
   onRowClick,
-  onEditClick
+  onEditClick,
+  onDeleteClick,
 }: TableProps<T>) {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortConfig, setSortConfig] = useState<{
@@ -140,9 +142,8 @@ export default function Table2<T extends { id: string | number }>({
                       return "text-[#FB8C00] font-semibold";
                     if (value === "ONGOING")
                       return "text-[#1E88E5] font-semibold";
-                     if (value === "DELETED")
+                    if (value === "DELETED")
                       return "text-[#8E24AA] font-semibold";
-                    
                   }
                   return "";
                 };
@@ -175,6 +176,13 @@ export default function Table2<T extends { id: string | number }>({
                     className="text-green-600 hover:underline flex items-center gap-1 text-sm"
                   >
                     <FaEdit className="text-[12px]" />
+                  </button>
+                  <button
+                    onClick={() => onDeleteClick?.(row)}
+                    title="Delete"
+                    className="text-green-600 hover:underline flex items-center gap-1 text-sm"
+                  >
+                    <FaTrashAlt className="text-[12px]" />
                   </button>
                 </div>
               </td>

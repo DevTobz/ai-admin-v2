@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { IJobCreation } from "../../../store/types/job";
-import { Link } from "react-router-dom";
-import { Skeleton, Table, TableProps } from "antd";
-import { FaEdit, FaEye } from "react-icons/fa";
+import { Link, useNavigate } from "react-router-dom";
+import { Modal, Skeleton, Table, TableProps } from "antd";
+import { FaEdit, FaExclamationCircle, FaEye, FaTrashAlt } from "react-icons/fa";
 import axiosInstance from "../../../utility/axiosInstance";
 import { BiSearchAlt } from "react-icons/bi";
 import SearchInput from "../../../components/elements/forms/SearchInput";
 import { IJobFetch } from "../../../store/types/job";
 import { toast } from "sonner";
+import { delete_job } from "../../../services/api/job";
+import { useAppDispatch } from "../../../store/hooks";
+import DeleteConfirmModal from "../../../components/elements/DeleteConfirmModalJob";
 
 type ApiResponse = {
   message: string;
@@ -15,12 +18,18 @@ type ApiResponse = {
 };
 
 const JobsCreated: React.FC = () => {
+  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const [jobs, setJobs] = useState<IJobFetch[]>([]);
   const [loading, setLoading] = useState(true);
   const [filteredJobs, setFilteredJobs] = useState<IJobFetch[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [showMore, setShowMore] = useState(false);
   const [showMore1, setShowMore1] = useState(false);
+  const [deleteModal, setDeleteModal] = useState({
+    isOpen: false,
+    job: null as IJobFetch | null,
+  });
 
   const getJobs = async () => {
     try {
@@ -45,7 +54,10 @@ const JobsCreated: React.FC = () => {
       setFilteredJobs(jobs);
     } else {
       const filtered = jobs.filter(
-        (job) => job.currentTemplate.title.toLowerCase().includes(searchTerm.toLowerCase())
+        (job) =>
+          job.currentTemplate.title
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase())
         // Add other fields to search if needed:
         // || job.description.toLowerCase().includes(searchTerm.toLowerCase())
       );
@@ -101,24 +113,26 @@ const JobsCreated: React.FC = () => {
       ),
       // render: (_, record) => record.description.substring(0, maxChar) + "...",
     },
-   {
-  title: "Questions",
-  dataIndex: "interviewTemplate",
-  key: "interviewQuestions",
-  render: (_, record) => (
-    <div>
-      {showMore1
-        ? record.currentTemplate.interviewQuestions.join(", ")
-        : `${record.currentTemplate.interviewQuestions.join("- ").substring(0, 80)}`}
-      <p
-        className="cursor-pointer"
-        onClick={() => setShowMore1(!showMore1)}
-      >
-        {showMore1 ? "." : "..."}
-      </p>
-    </div>
-  ),
-},
+    {
+      title: "Questions",
+      dataIndex: "interviewTemplate",
+      key: "interviewQuestions",
+      render: (_, record) => (
+        <div>
+          {showMore1
+            ? record.currentTemplate.interviewQuestions.join(", ")
+            : `${record.currentTemplate.interviewQuestions
+                .join("- ")
+                .substring(0, 80)}`}
+          <p
+            className="cursor-pointer"
+            onClick={() => setShowMore1(!showMore1)}
+          >
+            {showMore1 ? "." : "..."}
+          </p>
+        </div>
+      ),
+    },
 
     {
       title: "Interview Mode",
@@ -129,7 +143,13 @@ const JobsCreated: React.FC = () => {
       title: "Has Pre/Ass",
       dataIndex: "pretestId",
       render: (_, record) => (
-        <div>{record.currentTemplate.pretestId === null ? <div></div> : <p>Pre/Ass</p>}</div>
+        <div>
+          {record.currentTemplate.pretestId === null ? (
+            <div></div>
+          ) : (
+            <p>Pre/Ass</p>
+          )}
+        </div>
       ),
     },
     {
@@ -148,23 +168,44 @@ const JobsCreated: React.FC = () => {
             <FaEye />
           </Link>
           <div className="w-[12px]"></div>
-          <Link to={`/candidates/${record.id}`} className="cursor-pointer">
+          <Link to={`/edit-job/${record.id}`} className="cursor-pointer">
             <FaEdit />
           </Link>
           <div className="w-[12px]"></div>
-          {/* <div
+          <div
             onClick={() => {
-              // delete_block(dispatch, record.id);
+              console.log("Delete button clicked for:", record);
+              setDeleteModal({
+                isOpen: true,
+                job: record,
+              });
+              // delete_job(dispatch, record.id);
             }}
             className="cursor-pointer"
           >
             <FaTrashAlt />
-          </div> */}
+          </div>
         </div>
       ),
     },
   ];
 
+  // Confirm delete
+  const handleConfirmDelete = () => {
+    if (deleteModal.job) {
+      console.log("Confirmed delete for:", deleteModal.job);
+      delete_job(dispatch, deleteModal.job.id, navigate);
+
+      // Close modal
+      setDeleteModal({ isOpen: false, job: null });
+    }
+  };
+
+  // Cancel delete
+  const handleCancelDelete = () => {
+    console.log("Delete cancelled");
+    setDeleteModal({ isOpen: false, job: null });
+  };
   // const tableData = React.useMemo(() => {
   //   if (!jobs || !Array.isArray(jobs)) return [];
 
@@ -212,11 +253,12 @@ const JobsCreated: React.FC = () => {
           </div>
         )}
 
-        {/* <Table<IJobCreation>
-          data={tableData}
-          columns={columns}
-          onRowClick={handleRowClick}
-        /> */}
+        <DeleteConfirmModal
+          job={deleteModal.job}
+          isOpen={deleteModal.isOpen}
+          onConfirm={handleConfirmDelete}
+          onCancel={handleCancelDelete}
+        />
       </div>
     </div>
   );

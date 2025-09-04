@@ -12,13 +12,17 @@ import { toast } from "sonner";
 import { getCandidateById } from "../../../services/api/candidate";
 import {
   GetAllJobsQuery,
+  IJob,
   IJobCreation,
   InterviewQuestions,
   JobCreation,
+  JobCreation2Error,
   JobCreationError,
+  JobCreations,
 } from "../../../store/types/job";
-import { getJobs, jobs } from "../../../services/api/job";
+import { editJob, getJobs, jobs } from "../../../services/api/job";
 import { useNavigate } from "react-router-dom";
+import axiosInstance from "../../../utility/axiosInstance";
 // import axiosInstance from "../../../utility/axiosInstance";
 
 const initialQuestion: InterviewQuestions = {
@@ -282,3 +286,398 @@ export const ViewCandidate = (id: string) => {
 
   return { candidate, loading, error, refetch: fetchCandidate };
 };
+
+// edit job
+// const initialQuestion: InterviewQuestions = { id: "", question: "" };
+export const useEditJob = (jobId: string, existingJob?: IJob) => {
+  const dispatch = useAppDispatch();
+  const [loading, setLoading] = useState(false);
+  const [isFetching, setIsFetching] = useState(!!existingJob ? false : !!jobId);
+
+  const [data, setData] = useState<JobCreations>({
+    title: "",
+    description: "",
+    interviewQuestions: [initialQuestion],
+    interviewMode: "",
+    maxAiQuestions: 0,
+    pretestId: "",
+    assessmentId: "",
+  });
+
+  const [error, setError] = useState<JobCreation2Error>({
+    title: "",
+    description: "",
+    interviewQuestions: "",
+    interviewMode: "",
+  });
+
+  // Fetch job data - Moved outside conditional logic
+  useEffect(() => {
+    // Early return if we have existing data or no jobId
+    if (existingJob || !jobId) {
+      if (existingJob) {
+        setData({
+          title: existingJob.title || "",
+          description: existingJob.description || "",
+          interviewMode: existingJob.interviewMode || "",
+          maxAiQuestions: existingJob.maxAiQuestions || 0,
+          pretestId: existingJob.pretestId || "",
+          assessmentId: existingJob.assessmentId || "",
+          interviewQuestions:
+            existingJob.interviewQuestions?.length > 0
+              ? existingJob.interviewQuestions
+              : [initialQuestion],
+        });
+      }
+      return;
+    }
+
+    // Only fetch if we don't have existing data and we have a jobId
+    const fetchJobData = async () => {
+      setIsFetching(true);
+      try {
+        const response = await axiosInstance.get(`/job/${jobId}`);
+        const jobData = response.data;
+
+        setData({
+          title: jobData.title || "",
+          description: jobData.description || "",
+          interviewMode: jobData.interviewMode || "",
+          maxAiQuestions: jobData.maxAiQuestions || 0,
+          pretestId: jobData.pretestId || "",
+          assessmentId: jobData.assessmentId || "",
+          interviewQuestions:
+            jobData.interviewQuestions?.length > 0
+              ? jobData.interviewQuestions
+              : [initialQuestion],
+        });
+      } catch (error) {
+        console.error("Failed to fetch job data:", error);
+        setError((prev) => ({ ...prev, fetch: "Failed to load job data" }));
+      } finally {
+        setIsFetching(false);
+      }
+    };
+
+    fetchJobData();
+  }, [jobId, existingJob]); // Keep dependencies but ensure stable logic
+
+  // Rest of the hooks must be called unconditionally
+  const onChangeHandler = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const { name, value } = e.target;
+      setError((prev) => ({ ...prev, [name]: "" }));
+      setData((prev) => ({ ...prev, [name]: value }));
+    },
+    []
+  );
+
+  const onChangeTextbox = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      const { name, value } = e.target;
+      setData((prev) => ({ ...prev, [name]: value }));
+      setError((prev) => ({ ...prev, [name]: "" }));
+    },
+    []
+  );
+
+  const onChangeSelect = useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const { name, value } = e.target;
+      setData((prev) => ({ ...prev, [name]: value }));
+      setError((prev) => ({ ...prev, [name]: "" }));
+    },
+    []
+  );
+
+  const updateQuestion = useCallback(
+    (index: number, field: keyof InterviewQuestions, value: string) => {
+      setData((prev) => {
+        const newQuestions = [...prev.interviewQuestions];
+        newQuestions[index] = { ...newQuestions[index], [field]: value };
+        return { ...prev, interviewQuestions: newQuestions };
+      });
+    },
+    []
+  );
+
+  const addQuestion = useCallback(() => {
+    setData((prev) => ({
+      ...prev,
+      interviewQuestions: [...prev.interviewQuestions, { ...initialQuestion }],
+    }));
+  }, []);
+
+  const removeQuestion = useCallback((index: number) => {
+    setData((prev) => ({
+      ...prev,
+      interviewQuestions: prev.interviewQuestions.filter((_, i) => i !== index),
+    }));
+  }, []);
+
+  const validateForm = useCallback((): boolean => {
+    const newError: Partial<JobCreation2Error> = {};
+    let isValid = true;
+
+    if (!data.title.trim()) {
+      newError.title = "Job title is required";
+      isValid = false;
+    }
+
+    if (!data.description.trim()) {
+      newError.description = "Job description is required";
+      isValid = false;
+    }
+
+    if (!data.interviewMode) {
+      newError.interviewMode = "Interview mode is required";
+      isValid = false;
+    }
+
+    if (
+      (data.interviewMode === "MIXED" || data.interviewMode === "AUTONOMOUS") &&
+      (!data.maxAiQuestions || data.maxAiQuestions < 1)
+    ) {
+      newError.maxAiQuestions = "Number of AI questions is required";
+      isValid = false;
+    }
+
+    if (data.interviewMode === "GUIDED" || data.interviewMode === "MIXED") {
+      const emptyQuestions = data.interviewQuestions.some(
+        (q) => !q.question.trim()
+      );
+      if (emptyQuestions) {
+        newError.interviewQuestions = "All interview questions must be filled";
+        isValid = false;
+      }
+    }
+
+    setError((prev) => ({ ...prev, ...newError }));
+    return isValid;
+  }, [data]);
+
+  const onSubmit = useCallback(async () => {
+    if (!validateForm()) return;
+
+    setLoading(true);
+    try {
+      const result = await editJob(dispatch, { ...data, id: jobId });
+
+      if (result.success) {
+        // Success handling
+      }
+    } catch (error) {
+      console.error("Submission error:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [data, jobId, dispatch, validateForm]);
+
+  return {
+    data,
+    error,
+    loading: loading || isFetching,
+    onChangeHandler,
+    onChangeTextbox,
+    onChangeSelect,
+    updateQuestion,
+    addQuestion,
+    removeQuestion,
+    onSubmit,
+    isFetching,
+  };
+};
+// export const useEditJob = (jobId: string, existingJob?: IJob) => {
+//   const dispatch = useAppDispatch();
+//   const [loading, setLoading] = useState(false);
+//   const [isFetching, setIsFetching] = useState(!existingJob);
+
+//   const [data, setData] = useState<JobCreations>({
+//     title: "",
+//     description: "",
+//     interviewQuestions: [initialQuestion],
+//     interviewMode: "",
+//     maxAiQuestions: 0,
+//     pretestId: "",
+//     assessmentId: "",
+//   });
+
+//   const [error, setError] = useState<JobCreation2Error>({
+//     title: "",
+//     description: "",
+//     interviewQuestions: "",
+//     interviewMode: "",
+//   });
+
+//   // Fetch job data if not provided
+//   useEffect(() => {
+//     const fetchJobData = async () => {
+//       if (!existingJob && jobId) {
+//         setIsFetching(true);
+//         try {
+//           const response = await axiosInstance.get(`/job/${jobId}`);
+//           const jobData = response.data;
+
+//           setData({
+//             title: jobData.title || "",
+//             description: jobData.description || "",
+//             interviewMode: jobData.interviewMode || "",
+//             maxAiQuestions: jobData.maxAiQuestions || 0,
+//             pretestId: jobData.pretestId || "",
+//             assessmentId: jobData.assessmentId || "",
+//             interviewQuestions:
+//               jobData.interviewQuestions?.length > 0
+//                 ? jobData.interviewQuestions
+//                 : [initialQuestion],
+//           });
+//         } catch (error) {
+//           console.error("Failed to fetch job data:", error);
+//         } finally {
+//           setIsFetching(false);
+//         }
+//       } else if (existingJob) {
+//         // Use provided job data
+//         setData({
+//           title: existingJob.title || "",
+//           description: existingJob.description || "",
+//           interviewMode: existingJob.interviewMode || "",
+//           maxAiQuestions: existingJob.maxAiQuestions || 0,
+//           pretestId: existingJob.pretestId || "",
+//           assessmentId: existingJob.assessmentId || "",
+//           interviewQuestions:
+//             existingJob.interviewQuestions?.length > 0
+//               ? existingJob.interviewQuestions
+//               : [initialQuestion],
+//         });
+//       }
+//     };
+
+//     fetchJobData();
+//   }, [jobId, existingJob]);
+
+//   const onChangeHandler = useCallback(
+//     (e: React.ChangeEvent<HTMLInputElement>) => {
+//       const { name, value } = e.target;
+//       setError((prev) => ({ ...prev, [name]: "" }));
+//       setData((prev) => ({ ...prev, [name]: value }));
+//     },
+//     []
+//   );
+
+//   const onChangeTextbox = useCallback(
+//     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+//       const { name, value } = e.target;
+//       setData((prev) => ({ ...prev, [name]: value }));
+//       setError((prev) => ({ ...prev, [name]: "" }));
+//     },
+//     []
+//   );
+
+//   const onChangeSelect = useCallback(
+//     (e: React.ChangeEvent<HTMLSelectElement>) => {
+//       const { name, value } = e.target;
+//       setData((prev) => ({ ...prev, [name]: value }));
+//       setError((prev) => ({ ...prev, [name]: "" }));
+//     },
+//     []
+//   );
+
+//   const updateQuestion = useCallback(
+//     (index: number, field: keyof InterviewQuestions, value: string) => {
+//       setData((prev) => {
+//         const newQuestions = [...prev.interviewQuestions];
+//         newQuestions[index] = { ...newQuestions[index], [field]: value };
+//         return { ...prev, interviewQuestions: newQuestions };
+//       });
+//     },
+//     []
+//   );
+
+//   const addQuestion = useCallback(() => {
+//     setData((prev) => ({
+//       ...prev,
+//       interviewQuestions: [...prev.interviewQuestions, { ...initialQuestion }],
+//     }));
+//   }, []);
+
+//   const removeQuestion = useCallback((index: number) => {
+//     setData((prev) => ({
+//       ...prev,
+//       interviewQuestions: prev.interviewQuestions.filter((_, i) => i !== index),
+//     }));
+//   }, []);
+
+//   const validateForm = useCallback((): boolean => {
+//     const newError: Partial<JobCreation2Error> = {};
+//     let isValid = true;
+
+//     if (!data.title.trim()) {
+//       newError.title = "Job title is required";
+//       isValid = false;
+//     }
+
+//     if (!data.description.trim()) {
+//       newError.description = "Job description is required";
+//       isValid = false;
+//     }
+
+//     if (!data.interviewMode) {
+//       newError.interviewMode = "Interview mode is required";
+//       isValid = false;
+//     }
+
+//     if (
+//       (data.interviewMode === "MIXED" || data.interviewMode === "AUTONOMOUS") &&
+//       (!data.maxAiQuestions || data.maxAiQuestions < 1)
+//     ) {
+//       newError.maxAiQuestions = "Number of AI questions is required";
+//       isValid = false;
+//     }
+
+//     // Validate interview questions for guided/hybrid modes
+//     if (data.interviewMode === "GUIDED" || data.interviewMode === "MIXED") {
+//       const emptyQuestions = data.interviewQuestions.some(
+//         (q) => !q.question.trim()
+//       );
+//       if (emptyQuestions) {
+//         newError.interviewQuestions = "All interview questions must be filled";
+//         isValid = false;
+//       }
+//     }
+
+//     setError((prev) => ({ ...prev, ...newError }));
+//     return isValid;
+//   }, [data]);
+
+//   const onSubmit = useCallback(async () => {
+//     if (!validateForm()) return;
+
+//     setLoading(true);
+//     try {
+//       const result = await editJob(dispatch, { ...data, id: jobId });
+
+//       if (result.success) {
+//         // Optional: navigate or perform success action
+//         // navigate('/jobs');
+//       }
+//     } catch (error) {
+//       console.error("Submission error:", error);
+//     } finally {
+//       setLoading(false);
+//     }
+//   }, [data, jobId, dispatch, validateForm]);
+
+//   return {
+//     data,
+//     error,
+//     loading: loading || isFetching,
+//     onChangeHandler,
+//     onChangeTextbox,
+//     onChangeSelect,
+//     updateQuestion,
+//     addQuestion,
+//     removeQuestion,
+//     onSubmit,
+//     isFetching,
+//   };
+// };
