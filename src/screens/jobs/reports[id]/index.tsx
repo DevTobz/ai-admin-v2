@@ -4,7 +4,8 @@ import { Link } from "react-router-dom";
 import { Skeleton } from "antd";
 import { ViewInterview } from "../../candidates/misc/useCandidate";
 import { useSearchParams } from "react-router-dom";
-import { title } from "process";
+import { Rating, Star } from "@smastrom/react-rating";
+import "@smastrom/react-rating/style.css";
 
 const InterviewReports: React.FC = () => {
   // const { id } = useParams();
@@ -21,6 +22,12 @@ const InterviewReports: React.FC = () => {
     candidateVideoUrl,
     candidateFeedback,
   } = ViewInterview(interviewId, id);
+
+  const myStyles = {
+    itemShapes: Star,
+    activeFillColor: "#0B60D6",
+    // inactiveFillColor: "#fbf1a9",
+  };
 
   const accordionItems = [
     {
@@ -125,13 +132,21 @@ const InterviewReports: React.FC = () => {
       title: "Review/Feedback",
       content: (
         <div>
-          <p>
-            <span className="font-bold">Rating:</span>{" "}
-            {candidateFeedback?.feedback?.ratings}
-          </p>
+          <div className="flex items-center">
+            <p>
+              <span className="font-bold mr-2">Rating:</span>{" "}
+              {/* {candidateFeedback?.ratings} */}
+            </p>
+            <Rating
+              readOnly
+              value={candidateFeedback?.ratings ?? 0}
+              itemStyles={myStyles}
+              style={{ fontSize: 15, maxWidth: 150 }}
+            />
+          </div>
           <p>
             <span className="font-bold">Review: </span>{" "}
-            {candidateFeedback?.feedback?.review}
+            {candidateFeedback?.review}
           </p>
         </div>
       ),

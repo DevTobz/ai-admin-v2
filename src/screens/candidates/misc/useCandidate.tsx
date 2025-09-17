@@ -320,7 +320,9 @@ export const ViewInterview = (interviewId: string, id: string) => {
     ConversationHistory[] | null
   >(null);
   const [candidateVideoUrl, setCandidateVideoUrl] = useState<string>("");
-  const [candidateFeedback, setCandidateFeedback] = useState<Feedbacks>();
+  const [candidateFeedback, setCandidateFeedback] = useState<Feedbacks | null>(
+    null
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -332,7 +334,7 @@ export const ViewInterview = (interviewId: string, id: string) => {
       setCandidateEvaluation(response.data.candidateEvaluation);
       setConversationHistory(response.data.conversationHistory);
       setCandidateVideoUrl(response.data?.videoDetails?.videoUrl ?? "");
-      setCandidateFeedback(response.data?.feedbacks);
+      setCandidateFeedback(response.data?.feedback || null);
     } catch (err) {
       const errorMessage = "Failed to fetch Candidate details";
       setError(errorMessage);

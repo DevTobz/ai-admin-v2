@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import TextInput from "../../../components/elements/forms/TextInput";
 import TextInputBox from "../../../components/elements/forms/TextInputBox";
 import SubmitButton from "../../../components/elements/forms/SubmitButton";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useEditJob } from "../misc/useJob";
 import SelectDropdown from "../../../components/elements/forms/Select";
 import { IJob, IQuestionCreation } from "../../../store/types/job";
@@ -34,16 +34,22 @@ const EditJobForm: React.FC<EditJobFormProps> = ({
     onSubmit,
   } = useEditJob(jobId, existingJob);
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center py-8">Loading...</div>
-    );
-  }
+  const location = useLocation();
   const navigate = useNavigate();
-  const { id } = useParams<{ id: string }>();
-  if (!id) {
-    return <div>Job ID not found</div>;
-  }
+  // Determine if we're in edit mode based on the route
+  const isEditMode = location.pathname.includes("/edit-job");
+  // Get the job data passed from navigation state
+  // const jobId = location.state?.jobId as IJob | undefined;
+
+  // if (loading) {
+  //   return (
+  //     <div className="flex justify-center items-center py-8">Loading...</div>
+  //   );
+  // }
+  // const { id } = useParams<{ id: string }>();
+  // if (!id) {
+  //   return <div>Job ID not found</div>;
+  // }
 
   const [pretest, setPretests] = useState<IQuestionCreation[]>([]);
   const [assessment, setAssessments] = useState<IQuestionCreation[]>([]);
